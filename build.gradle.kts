@@ -1,3 +1,4 @@
+
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -57,8 +58,11 @@ tasks {
         }
         withType<KotlinCompile> {
             kotlinOptions.jvmTarget = it
+            kotlinOptions.freeCompilerArgs = listOf("-Xjvm-default=enable")
         }
     }
+
+    buildSearchableOptions.get().enabled = false
 
     wrapper {
         gradleVersion = properties("gradleVersion")

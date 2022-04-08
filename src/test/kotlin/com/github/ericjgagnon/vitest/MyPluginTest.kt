@@ -1,4 +1,4 @@
-package com.github.ericjgagnon.vitestrundebugconfig
+package com.github.ericjgagnon.vitest
 
 import com.intellij.ide.highlighter.XmlFileType
 import com.intellij.psi.xml.XmlFile

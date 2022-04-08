@@ -1,1 +1,1 @@
-rootProject.name = "vitest-run-debug-config"
+rootProject.name = "vitest"
