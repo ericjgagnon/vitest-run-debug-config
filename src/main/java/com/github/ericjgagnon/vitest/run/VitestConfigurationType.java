@@ -1,7 +1,6 @@
 package com.github.ericjgagnon.vitest.run;
 
 import com.intellij.execution.configurations.ConfigurationTypeUtil;
-import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.configurations.RunConfigurationSingletonPolicy;
 import com.intellij.execution.configurations.SimpleConfigurationType;
 import com.intellij.icons.AllIcons;
@@ -18,7 +17,7 @@ public class VitestConfigurationType extends SimpleConfigurationType implements 
     }
 
     @Override
-    public @NotNull RunConfiguration createTemplateConfiguration(@NotNull Project project) {
+    public @NotNull VitestRunConfiguration createTemplateConfiguration(@NotNull Project project) {
         return new VitestRunConfiguration(project, this, "Vitest");
     }
 

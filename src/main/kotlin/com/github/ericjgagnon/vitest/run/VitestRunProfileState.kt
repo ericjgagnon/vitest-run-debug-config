@@ -41,7 +41,7 @@ class VitestRunProfileState(
 
     private val reporter by lazy {
         Files.createTempFile("intellij-vitest-reporter", ".js").toFile().apply {
-            writeBytes(VitestRunProfileState::class.java.getResourceAsStream("/reporter.js").readBytes())
+            writeBytes(VitestRunProfileState::class.java.getResourceAsStream("/vitest-intellij-plugin/dist/reporter.js").readBytes())
             deleteOnExit()
         }
     }
@@ -133,10 +133,8 @@ class VitestRunProfileState(
             val bin = File(vitestPackage.systemDependentPath, "dist/cli")
             commandLine.addParameter(nodeTargetRun.path(bin.absolutePath))
             commandLine.addParameter("run")
-            commandLine.addParameter("--coverage")
             folder.addPlaceholderText(vitestPackage.name)
             folder.addPlaceholderText("run")
-            folder.addPlaceholderTexts("--coverage")
         }
 
         NodeCommandLineUtil.prependNodeDirToPATH(nodeTargetRun)
