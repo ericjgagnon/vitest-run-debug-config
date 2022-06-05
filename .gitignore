@@ -3,6 +3,7 @@
 .qodana
 build
 .run
+.DS_Store
 
 **/build/
 !src/**/build/
