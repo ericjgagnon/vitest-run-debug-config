@@ -25,9 +25,7 @@ import com.intellij.util.ObjectUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 
 public class VitestRunConfigurationProducer extends JsTestRunConfigurationProducer<VitestRunConfiguration> {
@@ -36,7 +34,7 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
     }
 
     @Override
-    public ConfigurationFactory getConfigurationFactory() {
+    public @NotNull ConfigurationFactory getConfigurationFactory() {
         return VitestConfigurationType.getInstance();
     }
 
@@ -71,14 +69,15 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
                 VitestSettings.Builder builder = settings.toBuilder();
                 builder.setTestFilePath(virtualFile.getPath());
                 String testName = tep.getTestName();
-                if (testName == null) {
-                    builder.setScopeKind(VitestScopeKind.SUITE);
-                    builder.setTestNames(tep.getSuiteNames());
-                } else {
-                    builder.setScopeKind(VitestScopeKind.TEST);
-                    List<String> names = new ArrayList<>(tep.getSuiteNames());
-                    names.add(testName);
-                    builder.setTestNames(names);
+                String suiteName = tep.getSuiteNames().stream().findFirst().orElse(null);
+                if (suiteName != null) {
+                    builder.scope(VitestScopeKind.SUITE);
+                    builder.setSuiteName(suiteName);
+                }
+
+                if (testName != null){
+                    builder.scope(VitestScopeKind.TEST);
+                    builder.setTestName(testName);
                 }
 
                 return new VitestRunConfigurationProducer.TestElementInfo(this, builder.build(), tep.getTestElement());
@@ -91,7 +90,7 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
         JSTestFileType testFileType = psiFile == null ? null : psiFile.getTestFileType();
         if (psiFile != null && testFileType == JSTestFileType.JASMINE) {
             VitestSettings.Builder builder = settings.toBuilder();
-            builder.setScopeKind(VitestScopeKind.TEST_FILE);
+            builder.scope(VitestScopeKind.TEST_FILE);
             builder.setTestFilePath(virtualFile.getPath());
             return new VitestRunConfigurationProducer.TestElementInfo(this, builder.build(), psiFile);
         } else {
@@ -100,14 +99,14 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
                 if (JestUtil.isJestConfigFile(jsonFile.getName())) {
                     VitestSettings.Builder builder = settings.toBuilder();
                     builder.vitestConfigFilePath(virtualFile.getPath());
-                    builder.setScopeKind(VitestScopeKind.ALL);
+                    builder.scope(VitestScopeKind.ALL);
                     return new VitestRunConfigurationProducer.TestElementInfo(this, builder.build(), jsonFile);
                 }
 
                 if (PackageJsonUtil.isPackageJsonFile(jsonFile)) {
                     JsonProperty testProp = PackageJsonUtil.findContainingTopLevelProperty(element);
                     if (testProp != null && "vitest".equals(testProp.getName())) {
-                        return new VitestRunConfigurationProducer.TestElementInfo(this, settings.toBuilder().setScopeKind(VitestScopeKind.ALL).build(), testProp);
+                        return new VitestRunConfigurationProducer.TestElementInfo(this, settings.toBuilder().scope(VitestScopeKind.ALL).build(), testProp);
                     }
                 }
             }
@@ -137,11 +136,11 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
                     if (scopeKind == VitestScopeKind.ALL) {
                         return true;
                     } else if (scopeKind == VitestScopeKind.TEST_FILE) {
-                        return thisRunSettings.testFilePath().equals(thatRunSettings.testFilePath());
+                        return Objects.equals(thisRunSettings.testFilePath(), thatRunSettings.testFilePath());
                     } else if (scopeKind != VitestScopeKind.SUITE && scopeKind != VitestScopeKind.TEST) {
                         return false;
                     } else {
-                        return thisRunSettings.testFilePath().equals(thatRunSettings.testFilePath()) && thisRunSettings.testNames().equals(thatRunSettings.testNames());
+                        return Objects.equals(thisRunSettings.testFilePath(), thatRunSettings.testFilePath()) && Objects.equals(thisRunSettings.testName(), thatRunSettings.testName());
                     }
                 }
             }

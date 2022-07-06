@@ -10,7 +10,11 @@ import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
 import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView
 import com.intellij.javascript.debugger.CommandLineDebugConfigurator
-import com.intellij.javascript.nodejs.*
+import com.intellij.javascript.nodejs.NodeCommandLineUtil
+import com.intellij.javascript.nodejs.NodeConsoleAdditionalFilter
+import com.intellij.javascript.nodejs.NodeModuleDirectorySearchProcessor
+import com.intellij.javascript.nodejs.NodeModuleSearchUtil
+import com.intellij.javascript.nodejs.NodeStackTraceFilter
 import com.intellij.javascript.nodejs.debug.NodeCommandLineOwner
 import com.intellij.javascript.nodejs.execution.NodeBaseRunProfileState
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
@@ -41,7 +45,7 @@ class VitestRunProfileState(
 
     private val reporter by lazy {
         Files.createTempFile("intellij-vitest-reporter", ".js").toFile().apply {
-            writeBytes(VitestRunProfileState::class.java.getResourceAsStream("/vitest-intellij-plugin/dist/reporter.js").readBytes())
+            writeBytes(VitestRunProfileState::class.java.getResourceAsStream("/vitest-intellij-plugin/dist/reporter.js")!!.readBytes())
             deleteOnExit()
         }
     }
@@ -59,11 +63,10 @@ class VitestRunProfileState(
         val consoleView = SMTestRunnerConnectionUtil.createConsole("VitestJavaScriptTestRunner", consoleProperties)
         val workingDirectory = settings.workingDirectory()
         consoleProperties.addStackTraceFilter(NodeStackTraceFilter(project, workingDirectory, consoleProperties.targetRun))
-        consoleProperties.addStackTraceFilter(VitestFilter());
-        val stackTraceFilters: Iterator<*> = consoleProperties.stackTrackFilters.iterator()
+        val stackTraceFilters: Iterator<Filter> = consoleProperties.stackTrackFilters.iterator()
 
         while (stackTraceFilters.hasNext()) {
-            val filter = stackTraceFilters.next() as Filter
+            val filter = stackTraceFilters.next()
             consoleView.addMessageFilter(filter)
         }
 
@@ -88,7 +91,7 @@ class VitestRunProfileState(
             }
 
             override fun keyReleased(event: KeyEvent) {
-                val newKeyCode = keyCodeMapping.get(event.keyCode)
+                val newKeyCode = keyCodeMapping[event.keyCode]
                 if (newKeyCode != null) {
                     sendCode(newKeyCode)
                 }
@@ -101,7 +104,8 @@ class VitestRunProfileState(
                         try {
                             input.write(keyCode)
                             input.flush()
-                        } catch (var4: IOException) {
+                        } catch (exception: IOException) {
+                            throw RuntimeException("Failed to handle input with keyCode $keyCode", exception)
                         }
                     }
                 }
@@ -118,10 +122,10 @@ class VitestRunProfileState(
         val nodeJsInterpreterRef = settings.interpreter()
         val nodeInterpreter: NodeJsInterpreter = nodeJsInterpreterRef.resolveNotNull(project)
         val nodeTargetRun = NodeTargetRun(nodeInterpreter, project, configurator, NodeTargetRun.createOptionsForTestConsole(
-            listOf(), true
-        ));
+            listOf(), true, vitestRunConfiguration
+        ))
 
-        val commandLine = nodeTargetRun.commandLineBuilder;
+        val commandLine = nodeTargetRun.commandLineBuilder
 
         val workingDir = settings.workingDirectory()
         if (workingDir != null) {
@@ -155,8 +159,19 @@ class VitestRunProfileState(
 
 
         val testFilePath = settings.testFilePath()
-        commandLine.addParameter(testFilePath)
-        folder.addPlaceholderText(testFilePath)
+        if (testFilePath != null) {
+            commandLine.addParameter(testFilePath)
+            folder.addPlaceholderText(testFilePath)
+        }
+
+        val testPattern = settings.testPattern()
+        if (testPattern != null) {
+            commandLine.addParameters("-t", testPattern)
+            folder.addPlaceholderTexts("-t", testPattern)
+        }
+
+        commandLine.addParameter(" --passWithNoTests")
+        folder.addPlaceholderText(" --passWithNoTests")
 
         return nodeTargetRun.startProcess()
     }

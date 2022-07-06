@@ -22,7 +22,6 @@ class VitestRunProfileStateTest: BasePlatformTestCase() {
     }
 
     fun testCreateExecutionResult() {
-        val projectDir = System.getProperty("user.dir");
         val expectation = "##teamcity[testingStarted]\n" +
                 "##teamcity[testStarted id='1766321171_0' name='2 === 2' nodeId='1766321171_0']\n" +
                 "##teamcity[testFinished id='1766321171_0' name='2 === 2' nodeId='1766321171_0' duration='1']\n" +
@@ -35,7 +34,7 @@ class VitestRunProfileStateTest: BasePlatformTestCase() {
             NodePackage("${myFixture.testDataPath}/$VITE_PACKAGE"),
             "vite.config.js",
             "${myFixture.testDataPath}/$TEST_WORKING_DIR",
-            arrayListOf("single-testcase.test.js"),
+            "single-testcase.test.js",
             "${myFixture.testDataPath}/$TEST_PATH",
         )
         config.setRunSettings(settings.build())

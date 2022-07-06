@@ -20,7 +20,7 @@ describe('VitestIntellijReporter', () => {
   });
 
   test('one file, suite and test', () => {
-    let messages: string = '';
+    let messages = '';
     mockWriter.mockImplementation((message: string) => {
       messages += message;
     });
@@ -29,7 +29,7 @@ describe('VitestIntellijReporter', () => {
     const emptySuite = {} as Suite;
     const emptyContext = {} as TestContext;
 
-    let suite: Suite = {
+    const suite: Suite = {
       id: '1_1',
       type: 'suite',
       name: 'Utils',
@@ -75,5 +75,8 @@ describe('VitestIntellijReporter', () => {
         "##teamcity[testSuiteFinished id='1_1' name='Utils' nodeId='1_1']\n" +
         '##teamcity[testingFinished]\n'
     );
+  });
+  test('some test', () => {
+    expect(1).toBe(1);
   });
 });

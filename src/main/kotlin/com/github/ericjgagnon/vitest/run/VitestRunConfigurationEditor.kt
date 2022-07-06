@@ -1,40 +1,33 @@
 package com.github.ericjgagnon.vitest.run
 
+import com.github.ericjgagnon.vitest.run.utils.FormUtils.directoryField
+import com.github.ericjgagnon.vitest.run.views.VitestPatternMatchedScopeView
 import com.intellij.execution.configuration.EnvironmentVariablesTextFieldWithBrowseButton
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterField
 import com.intellij.javascript.nodejs.util.NodePackageField
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
-import com.intellij.ui.dsl.builder.Cell
-import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
-import com.intellij.util.ui.SwingHelper
-import java.util.*
+import java.util.Optional
 import javax.swing.JComponent
-import javax.swing.JTextField
 
-class VitestRunConfigurationEditor(private val project: Project) : SettingsEditor<VitestRunConfiguration>() {
+class VitestRunConfigurationEditor(
+    private val project: Project,
+) : SettingsEditor<VitestRunConfiguration>() {
 
-    private var configurationFileField: TextFieldWithBrowseButton
-    private var nodeInterpreterField: NodeJsInterpreterField
-    private var nodeOptionsField: EnvironmentVariablesTextFieldWithBrowseButton
-    private var vitestJsPackageField: NodePackageField
-    private var viteConfigFilePathField: TextFieldWithBrowseButton
-    private var workingDirectoryField: TextFieldWithBrowseButton
+    private var nodeInterpreterField: NodeJsInterpreterField = NodeJsInterpreterField(project, false)
+    private var nodeOptionsField: EnvironmentVariablesTextFieldWithBrowseButton =
+        EnvironmentVariablesTextFieldWithBrowseButton()
+    private var vitestJsPackageField: NodePackageField = NodePackageField(nodeInterpreterField, "vitest")
+    private var viteConfigFilePathField: TextFieldWithBrowseButton = TextFieldWithBrowseButton()
+    private var workingDirectoryField: TextFieldWithBrowseButton = TextFieldWithBrowseButton()
+    private var vitestScopeView = VitestPatternMatchedScopeView()
 
-    init {
-        val textField = JTextField();
-        configurationFileField = TextFieldWithBrowseButton(textField)
-        nodeInterpreterField = NodeJsInterpreterField(project, false)
-        nodeOptionsField = EnvironmentVariablesTextFieldWithBrowseButton()
-        vitestJsPackageField = NodePackageField(nodeInterpreterField, "vitest")
-        viteConfigFilePathField = TextFieldWithBrowseButton()
-        workingDirectoryField = TextFieldWithBrowseButton()
-    }
-
+    private lateinit var editor: DialogPanel
 
     override fun resetEditorFrom(runConfiguration: VitestRunConfiguration) {
         val settings = runConfiguration.settings
@@ -43,59 +36,46 @@ class VitestRunConfigurationEditor(private val project: Project) : SettingsEdito
         Optional.ofNullable(settings.vittestPackage()).ifPresent(vitestJsPackageField::setSelected)
         Optional.ofNullable(settings.vitestConfigFilePath()).ifPresent(viteConfigFilePathField::setText)
         Optional.ofNullable(settings.workingDirectory()).ifPresent(workingDirectoryField::setText)
+        vitestScopeView.setFromSettings(settings)
     }
 
     override fun applyEditorTo(runConfiguration: VitestRunConfiguration) {
-        val vitestSettings: VitestSettings.Builder = runConfiguration.settings.toBuilder()
-        vitestSettings.interpreter(interpreter = nodeInterpreterField.interpreterRef)
-        vitestSettings.nodeOptions(nodeOptions = nodeOptionsField.text)
-        vitestSettings.vitestPackage(vitestPackage = vitestJsPackageField.selected)
-        vitestSettings.vitestConfigFilePath(vitestConfigFilePath = viteConfigFilePathField.text)
-        vitestSettings.workingDirectory(workingDirectory = workingDirectoryField.text)
-        runConfiguration.setRunSettings(vitestSettings)
+        val vitestSettingsBuilder: VitestSettings.Builder = runConfiguration.settings.toBuilder()
+        vitestSettingsBuilder.interpreter(nodeInterpreterField.interpreterRef)
+        vitestSettingsBuilder.nodeOptions(nodeOptionsField.text.ifBlank { null })
+        vitestSettingsBuilder.vitestPackage(vitestJsPackageField.selected)
+        vitestSettingsBuilder.vitestConfigFilePath(viteConfigFilePathField.text)
+        vitestSettingsBuilder.workingDirectory(workingDirectoryField.text)
+        vitestScopeView.updateSettings(vitestSettingsBuilder)
+
+        val vitestSettings = vitestSettingsBuilder.build()
+        if (vitestSettings != runConfiguration.settings) {
+            runConfiguration.setRunSettings(vitestSettings)
+        }
     }
 
+
     override fun createEditor(): JComponent {
-        fun Row.nodeInterpreterField(): Cell<NodeJsInterpreterField> {
-            return cell(nodeInterpreterField).horizontalAlign(HorizontalAlign.FILL)
-        }
-
-        fun Row.nodeOptionsField(): Cell<EnvironmentVariablesTextFieldWithBrowseButton> {
-            return cell(nodeOptionsField).horizontalAlign(HorizontalAlign.FILL)
-        }
-
-        fun Row.viteConfigurationFileField(): Cell<TextFieldWithBrowseButton> {
-            SwingHelper.installFileCompletionAndBrowseDialog(
-                project,
-                viteConfigFilePathField,
-                "Configuration File:",
-                FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor()
-                    .withFileFilter { file -> file.name == "vite.config.js" })
-            return cell(viteConfigFilePathField).horizontalAlign(HorizontalAlign.FILL)
-        }
-
-        fun Row.workingDirectoryField(): Cell<TextFieldWithBrowseButton> {
-            SwingHelper.installFileCompletionAndBrowseDialog(
-                project,
-                workingDirectoryField,
-                "Working directory:",
-                FileChooserDescriptorFactory.createSingleFolderDescriptor()
-            )
-            return cell(workingDirectoryField).horizontalAlign(HorizontalAlign.FILL)
-        }
-
-        return panel {
+        editor = panel {
             row("Node interpreter:") {
-                nodeInterpreterField()
+                cell(nodeInterpreterField).horizontalAlign(HorizontalAlign.FILL)
             }
-            row("Node options:") { nodeOptionsField() }
+            row("Node options:") {
+                cell(nodeOptionsField).horizontalAlign(HorizontalAlign.FILL)
+            }
             row("Vitest package:") {
                 cell(vitestJsPackageField).horizontalAlign(HorizontalAlign.FILL)
             }
-            row("Working directory: ") { workingDirectoryField() }
+            row("Working directory:") { directoryField(project, workingDirectoryField, "Working Directory") }
             row("Configuration file:") {
-                viteConfigurationFileField()
+                directoryField(project, viteConfigFilePathField, "Configuration File",
+                    FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor().withFileFilter { file -> file.name == "vite.config.js" })
+            }
+            with(vitestScopeView) {
+                render()
             }
         }
+
+        return editor
     }
 }
