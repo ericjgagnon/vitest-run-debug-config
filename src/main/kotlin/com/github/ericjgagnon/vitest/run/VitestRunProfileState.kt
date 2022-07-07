@@ -37,7 +37,6 @@ import java.nio.file.Files
 
 private const val reporterPackage = "cypress-vitest-reporter"
 
-@Suppress("JVM_DEFAULT_THROUGH_INHERITANCE")
 class VitestRunProfileState(
     private val vitestRunConfiguration: VitestRunConfiguration,
     private val environment: ExecutionEnvironment,

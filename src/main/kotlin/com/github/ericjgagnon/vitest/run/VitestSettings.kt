@@ -75,7 +75,7 @@ class VitestSettings private constructor(
         if (testName != other.testName) return false
         if (testFilePath != other.testFilePath) return false
         if (suiteName != other.suiteName) return false
-        if (testPattern != other.testFilePath) return false
+        if (testPattern != other.testPattern) return false
         if (scope != other.scope) return false
 
         return true

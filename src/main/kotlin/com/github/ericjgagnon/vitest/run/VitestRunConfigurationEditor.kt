@@ -25,7 +25,7 @@ class VitestRunConfigurationEditor(
     private var vitestJsPackageField: NodePackageField = NodePackageField(nodeInterpreterField, "vitest")
     private var viteConfigFilePathField: TextFieldWithBrowseButton = TextFieldWithBrowseButton()
     private var workingDirectoryField: TextFieldWithBrowseButton = TextFieldWithBrowseButton()
-    private var vitestScopeView = VitestPatternMatchedScopeView()
+    private var vitestScopeView = VitestPatternMatchedScopeView(project)
 
     private lateinit var editor: DialogPanel
 

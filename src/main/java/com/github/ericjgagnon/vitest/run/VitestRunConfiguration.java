@@ -2,7 +2,6 @@ package com.github.ericjgagnon.vitest.run;
 
 import com.intellij.execution.Executor;
 import com.intellij.execution.configurations.ConfigurationFactory;
-import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.configurations.RunProfileState;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.testframework.sm.runner.SMRunnerConsolePropertiesProvider;
@@ -15,7 +14,6 @@ import com.intellij.javascript.nodejs.execution.NodeTargetRun;
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter;
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef;
 import com.intellij.javascript.nodejs.util.NodePackage;
-import com.intellij.javascript.testFramework.PreferableRunConfiguration;
 import com.intellij.javascript.testFramework.navigation.JSTestLocationProvider;
 import com.intellij.openapi.options.SettingsEditor;
 import com.intellij.openapi.project.Project;
@@ -23,7 +21,6 @@ import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.JDOMExternalizerUtil;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.psi.PsiElement;
 import com.intellij.util.PathUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.jdom.Element;
@@ -32,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
-public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile implements NodeDebugRunConfiguration, PreferableRunConfiguration, JSRunProfileWithCompileBeforeLaunchOption, SMRunnerConsolePropertiesProvider {
+public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile implements NodeDebugRunConfiguration, JSRunProfileWithCompileBeforeLaunchOption, SMRunnerConsolePropertiesProvider {
 
     private VitestSettings settings;
 
@@ -50,17 +47,8 @@ public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile i
         return Optional.ofNullable(this.settings).map(VitestSettings::interpreter).map(nodeJsInterpreterRef -> nodeJsInterpreterRef.resolve(this.getProject())).orElse(null);
     }
 
-    public RunProfileState getState(@NotNull Executor executor, @NotNull ExecutionEnvironment environment) {
+    public @NotNull RunProfileState getState(@NotNull Executor executor, @NotNull ExecutionEnvironment environment) {
         return new VitestRunProfileState(this, environment);
-    }
-
-    public boolean isPreferredOver(@NotNull RunConfiguration runConfiguration, @NotNull PsiElement psiElement) {
-        CharSequence contents = psiElement.getContainingFile().getViewProvider().getContents();
-        if (!StringUtil.contains(contents, "vitest")) {
-            return false;
-        } else {
-            return StringUtil.contains(contents, "'vitest'") || StringUtil.contains(contents, "\"vitest\"");
-        }
     }
 
     public String suggestedName() {

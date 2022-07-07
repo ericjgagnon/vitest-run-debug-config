@@ -62,14 +62,14 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
         if (virtualFile == null) {
             return null;
         } else {
-            JsTestElementPath tep = createSuiteOrTestData(element);
-            if (tep == null) {
+            JsTestElementPath testElementPath = createSuiteOrTestData(element);
+            if (testElementPath == null) {
                 return this.createFileInfo(element, virtualFile, settings);
             } else {
                 VitestSettings.Builder builder = settings.toBuilder();
                 builder.setTestFilePath(virtualFile.getPath());
-                String testName = tep.getTestName();
-                String suiteName = tep.getSuiteNames().stream().findFirst().orElse(null);
+                String testName = testElementPath.getTestName();
+                String suiteName = testElementPath.getSuiteNames().stream().findFirst().orElse(null);
                 if (suiteName != null) {
                     builder.scope(VitestScopeKind.SUITE);
                     builder.setSuiteName(suiteName);
@@ -80,7 +80,7 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
                     builder.setTestName(testName);
                 }
 
-                return new VitestRunConfigurationProducer.TestElementInfo(this, builder.build(), tep.getTestElement());
+                return new VitestRunConfigurationProducer.TestElementInfo(this, builder.build(), testElementPath.getTestElement());
             }
         }
     }
@@ -155,17 +155,17 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
         } else {
             JSFile jsFile = ObjectUtils.tryCast(element.getContainingFile(), JSFile.class);
             TextRange textRange = element.getTextRange();
-            if (jsFile != null && textRange != null) {
+            if (jsFile == null || textRange == null) {
+                return null;
+            } else {
                 JasmineFileStructure jasmineStructure = JasmineFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile);
                 JsTestElementPath path = jasmineStructure.findTestElementPath(textRange);
-                if (path != null) {
-                    return path;
+                if (path == null) {
+                    MochaTddFileStructure mochaStructure = MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile);
+                    return mochaStructure.findTestElementPath(textRange);
                 } else {
-                    MochaTddFileStructure tddStructure = MochaTddFileStructureBuilder.getInstance().fetchCachedTestFileStructure(jsFile);
-                    return tddStructure.findTestElementPath(textRange);
+                    return path;
                 }
-            } else {
-                return null;
             }
         }
     }
