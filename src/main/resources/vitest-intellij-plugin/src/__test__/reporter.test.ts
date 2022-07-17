@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import type { File, Suite, TaskResult, TestContext } from 'vitest';
 import VitestIntellijReporter from '../reporter';
 
@@ -5,7 +6,7 @@ const reporter = new VitestIntellijReporter();
 
 describe('VitestIntellijReporter', () => {
   const originalWrite = process.stdout.write;
-  const mockWriter = jest.fn();
+  const mockWriter = vi.fn();
 
   beforeAll(() => {
     process.stdout.write = mockWriter;

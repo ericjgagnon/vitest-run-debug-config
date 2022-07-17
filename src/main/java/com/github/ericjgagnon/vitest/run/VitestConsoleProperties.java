@@ -3,8 +3,10 @@ package com.github.ericjgagnon.vitest.run;
 import com.intellij.execution.Executor;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.testframework.TestConsoleProperties;
+import com.intellij.execution.testframework.actions.AbstractRerunFailedTestsAction;
 import com.intellij.execution.testframework.sm.runner.OutputToGeneralTestEventsConverter;
 import com.intellij.execution.testframework.sm.runner.SMTestLocator;
+import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.javascript.nodejs.execution.NodeTargetRun;
 import com.intellij.javascript.testing.JsTestConsoleProperties;
@@ -53,5 +55,10 @@ public class VitestConsoleProperties extends JsTestConsoleProperties {
     @Override
     public OutputToGeneralTestEventsConverter createTestEventsConverter(@NotNull String testFrameworkName, @NotNull TestConsoleProperties consoleProperties) {
         return super.createTestEventsConverter(testFrameworkName, consoleProperties);
+    }
+
+    @Override
+    public @Nullable AbstractRerunFailedTestsAction createRerunFailedTestsAction(ConsoleView consoleView) {
+        return new VitestRerunFailedTestAction((SMTRunnerConsoleView) consoleView, this);
     }
 }

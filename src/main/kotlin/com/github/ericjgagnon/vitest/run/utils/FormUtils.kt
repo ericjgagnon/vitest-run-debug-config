@@ -15,7 +15,7 @@ import javax.swing.ButtonModel
 object FormUtils {
 
     @JvmStatic
-    fun Row.directoryField(
+    fun Row.fileSystemCell(
         project: Project,
         field: TextFieldWithBrowseButton,
         dialogTitle: String,

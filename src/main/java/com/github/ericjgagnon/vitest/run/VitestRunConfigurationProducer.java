@@ -1,8 +1,8 @@
 package com.github.ericjgagnon.vitest.run;
 
+import com.google.common.collect.Lists;
 import com.intellij.execution.actions.ConfigurationContext;
 import com.intellij.execution.configurations.ConfigurationFactory;
-import com.intellij.javascript.jest.JestUtil;
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor;
 import com.intellij.javascript.testFramework.JsTestElementPath;
 import com.intellij.javascript.testFramework.interfaces.mochaTdd.MochaTddFileStructure;
@@ -57,64 +57,6 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
         }
     }
 
-    private TestElementInfo createTestElementRunInfo(PsiElement element, VitestSettings settings) {
-        VirtualFile virtualFile = PsiUtilCore.getVirtualFile(element);
-        if (virtualFile == null) {
-            return null;
-        } else {
-            JsTestElementPath testElementPath = createSuiteOrTestData(element);
-            if (testElementPath == null) {
-                return this.createFileInfo(element, virtualFile, settings);
-            } else {
-                VitestSettings.Builder builder = settings.toBuilder();
-                builder.setTestFilePath(virtualFile.getPath());
-                String testName = testElementPath.getTestName();
-                String suiteName = testElementPath.getSuiteNames().stream().findFirst().orElse(null);
-                if (suiteName != null) {
-                    builder.scope(VitestScopeKind.SUITE);
-                    builder.setSuiteName(suiteName);
-                }
-
-                if (testName != null){
-                    builder.scope(VitestScopeKind.TEST);
-                    builder.setTestName(testName);
-                }
-
-                return new VitestRunConfigurationProducer.TestElementInfo(this, builder.build(), testElementPath.getTestElement());
-            }
-        }
-    }
-
-    private TestElementInfo createFileInfo(PsiElement element, VirtualFile virtualFile, VitestSettings settings) {
-        JSFile psiFile = ObjectUtils.tryCast(element.getContainingFile(), JSFile.class);
-        JSTestFileType testFileType = psiFile == null ? null : psiFile.getTestFileType();
-        if (psiFile != null && testFileType == JSTestFileType.JASMINE) {
-            VitestSettings.Builder builder = settings.toBuilder();
-            builder.scope(VitestScopeKind.TEST_FILE);
-            builder.setTestFilePath(virtualFile.getPath());
-            return new VitestRunConfigurationProducer.TestElementInfo(this, builder.build(), psiFile);
-        } else {
-            JsonFile jsonFile = ObjectUtils.tryCast(element.getContainingFile(), JsonFile.class);
-            if (jsonFile != null) {
-                if (JestUtil.isJestConfigFile(jsonFile.getName())) {
-                    VitestSettings.Builder builder = settings.toBuilder();
-                    builder.vitestConfigFilePath(virtualFile.getPath());
-                    builder.scope(VitestScopeKind.ALL);
-                    return new VitestRunConfigurationProducer.TestElementInfo(this, builder.build(), jsonFile);
-                }
-
-                if (PackageJsonUtil.isPackageJsonFile(jsonFile)) {
-                    JsonProperty testProp = PackageJsonUtil.findContainingTopLevelProperty(element);
-                    if (testProp != null && "vitest".equals(testProp.getName())) {
-                        return new VitestRunConfigurationProducer.TestElementInfo(this, settings.toBuilder().scope(VitestScopeKind.ALL).build(), testProp);
-                    }
-                }
-            }
-
-            return null;
-        }
-    }
-
     @Override
     protected boolean isConfigurationFromCompatibleContext(@NotNull VitestRunConfiguration configuration, @NotNull ConfigurationContext context) {
         PsiElement element = context.getPsiLocation();
@@ -140,10 +82,61 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
                     } else if (scopeKind != VitestScopeKind.SUITE && scopeKind != VitestScopeKind.TEST) {
                         return false;
                     } else {
-                        return Objects.equals(thisRunSettings.testFilePath(), thatRunSettings.testFilePath()) && Objects.equals(thisRunSettings.testName(), thatRunSettings.testName());
+                        return Objects.equals(thisRunSettings.testFilePath(), thatRunSettings.testFilePath()) && Objects.equals(thisRunSettings.testNames(), thatRunSettings.testNames());
                     }
                 }
             }
+        }
+    }
+
+    private TestElementInfo createTestElementRunInfo(PsiElement element, VitestSettings settings) {
+        VirtualFile virtualFile = PsiUtilCore.getVirtualFile(element);
+        if (virtualFile == null) {
+            return null;
+        } else {
+            JsTestElementPath testElementPath = createSuiteOrTestData(element);
+            if (testElementPath == null) {
+                return this.createFileInfo(element, virtualFile, settings);
+            } else {
+                VitestSettings.Builder builder = settings.toBuilder();
+                builder.setTestFilePath(virtualFile.getPath());
+                String testName = testElementPath.getTestName();
+                String suiteName = testElementPath.getSuiteNames().stream().findFirst().orElse(null);
+                if (suiteName != null) {
+                    builder.scope(VitestScopeKind.SUITE);
+                    builder.setSuiteName(suiteName);
+                }
+
+                if (testName != null){
+                    builder.scope(VitestScopeKind.TEST);
+                    builder.setTestNames(Lists.newArrayList(testName));
+                }
+
+                return new VitestRunConfigurationProducer.TestElementInfo(builder.build(), testElementPath.getTestElement());
+            }
+        }
+    }
+
+    private TestElementInfo createFileInfo(PsiElement element, VirtualFile virtualFile, VitestSettings settings) {
+        JSFile psiFile = ObjectUtils.tryCast(element.getContainingFile(), JSFile.class);
+        JSTestFileType testFileType = psiFile == null ? null : psiFile.getTestFileType();
+        if (psiFile != null && testFileType == JSTestFileType.JASMINE) {
+            VitestSettings.Builder builder = settings.toBuilder();
+            builder.scope(VitestScopeKind.TEST_FILE);
+            builder.setTestFilePath(virtualFile.getPath());
+            return new VitestRunConfigurationProducer.TestElementInfo(builder.build(), psiFile);
+        } else {
+            JsonFile jsonFile = ObjectUtils.tryCast(element.getContainingFile(), JsonFile.class);
+            if (jsonFile != null) {
+                if (PackageJsonUtil.isPackageJsonFile(jsonFile)) {
+                    JsonProperty testProp = PackageJsonUtil.findContainingTopLevelProperty(element);
+                    if (testProp != null && "vitest".equals(testProp.getName())) {
+                        return new VitestRunConfigurationProducer.TestElementInfo(settings.toBuilder().scope(VitestScopeKind.ALL).build(), testProp);
+                    }
+                }
+            }
+
+            return null;
         }
     }
 
@@ -171,12 +164,10 @@ public class VitestRunConfigurationProducer extends JsTestRunConfigurationProduc
     }
 
     public static class TestElementInfo {
-        private final VitestRunConfigurationProducer vitestRunConfigurationProducer;
         private final VitestSettings settings;
         private final PsiElement element;
 
-        public TestElementInfo(VitestRunConfigurationProducer vitestRunConfigurationProducer, VitestSettings settings, PsiElement element) {
-            this.vitestRunConfigurationProducer = vitestRunConfigurationProducer;
+        public TestElementInfo(VitestSettings settings, PsiElement element) {
             this.settings = settings;
             this.element = element;
         }

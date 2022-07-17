@@ -1,7 +1,7 @@
 package com.github.ericjgagnon.vitest.run
 
-import com.github.ericjgagnon.vitest.run.utils.FormUtils.directoryField
-import com.github.ericjgagnon.vitest.run.views.VitestPatternMatchedScopeView
+import com.github.ericjgagnon.vitest.run.utils.FormUtils.fileSystemCell
+import com.github.ericjgagnon.vitest.run.views.VitestStructuredScopeView
 import com.intellij.execution.configuration.EnvironmentVariablesTextFieldWithBrowseButton
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterField
 import com.intellij.javascript.nodejs.util.NodePackageField
@@ -25,7 +25,7 @@ class VitestRunConfigurationEditor(
     private var vitestJsPackageField: NodePackageField = NodePackageField(nodeInterpreterField, "vitest")
     private var viteConfigFilePathField: TextFieldWithBrowseButton = TextFieldWithBrowseButton()
     private var workingDirectoryField: TextFieldWithBrowseButton = TextFieldWithBrowseButton()
-    private var vitestScopeView = VitestPatternMatchedScopeView(project)
+    private var vitestScopeView = VitestStructuredScopeView(project)
 
     private lateinit var editor: DialogPanel
 
@@ -66,9 +66,9 @@ class VitestRunConfigurationEditor(
             row("Vitest package:") {
                 cell(vitestJsPackageField).horizontalAlign(HorizontalAlign.FILL)
             }
-            row("Working directory:") { directoryField(project, workingDirectoryField, "Working Directory") }
+            row("Working directory:") { fileSystemCell(project, workingDirectoryField, "Working Directory") }
             row("Configuration file:") {
-                directoryField(project, viteConfigFilePathField, "Configuration File",
+                fileSystemCell(project, viteConfigFilePathField, "Configuration File",
                     FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor().withFileFilter { file -> file.name == "vite.config.js" })
             }
             with(vitestScopeView) {

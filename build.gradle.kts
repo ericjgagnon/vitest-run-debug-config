@@ -10,7 +10,7 @@ plugins {
     // Kotlin support
     id("org.jetbrains.kotlin.jvm") version "1.6.10"
     // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.6.0"
+    id("org.jetbrains.intellij") version "1.7.0"
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.1"
     // Gradle Qodana Plugin
@@ -104,14 +104,14 @@ tasks {
     }
 
     signPlugin {
-        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-        privateKey.set(System.getenv("PRIVATE_KEY"))
-        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+        certificateChain.set(System.getenv("COM_GITHUB_ERICJGAGNON_VITEST_intellijSignPluginCert"))
+        privateKey.set(System.getenv("COM_GITHUB_ERICJGAGNON_VITEST_intellijSignPluginKey"))
+        password.set(System.getenv("COM_GITHUB_ERICJGAGNON_VITEST_intellijSignPluginPassword"))
     }
 
     publishPlugin {
         dependsOn("patchChangelog")
-        token.set(System.getenv("PUBLISH_TOKEN"))
+        token.set(System.getenv("COM_GITHUB_ERICJGAGNON_VITEST_intellijPublishToken"))
         // pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
         // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
         // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel

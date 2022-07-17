@@ -13,4 +13,7 @@ Work in progress Run/debug configuration plugin for Vitest on Jetbrains products
 - Manually adding a run/debug configuration with optional test file path and test pattern
 - Running tests from the file "gutters" and right-clicking inside of a file
 
+### Does not support:
+- Running single parameterized test cases
+
 Currently, not on the plugin marketplace, but is compatible with Intellij Ultimate and Webstorm 

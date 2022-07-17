@@ -1,5 +1,6 @@
 package com.github.ericjgagnon.vitest.run
 
+import com.google.common.collect.Lists
 import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
@@ -34,7 +35,7 @@ class VitestRunProfileStateTest: BasePlatformTestCase() {
             NodePackage("${myFixture.testDataPath}/$VITE_PACKAGE"),
             "vite.config.js",
             "${myFixture.testDataPath}/$TEST_WORKING_DIR",
-            "single-testcase.test.js",
+            Lists.newArrayList("single-testcase.test.js"),
             "${myFixture.testDataPath}/$TEST_PATH",
         )
         config.setRunSettings(settings.build())

@@ -1,4 +1,4 @@
-import { EOL } from 'os';
+const EOL = import.meta.env.VITE_LINE_ENDING;
 
 const doEscapeCharCode = (function () {
   const obj: Record<string, string | undefined> = {};

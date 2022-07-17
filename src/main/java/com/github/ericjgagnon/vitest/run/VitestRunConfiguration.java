@@ -20,13 +20,15 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.JDOMExternalizerUtil;
 import com.intellij.openapi.util.io.FileUtil;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.PathUtil;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile implements NodeDebugRunConfiguration, JSRunProfileWithCompileBeforeLaunchOption, SMRunnerConsolePropertiesProvider {
@@ -52,25 +54,30 @@ public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile i
     }
 
     public String suggestedName() {
-        VitestScopeKind scopeKind = settings.scope();
-        if (scopeKind == VitestScopeKind.ALL && StringUtils.isNotBlank(settings.testPattern())) {
-            return "Tests matching " + settings.testPattern();
+       VitestScopeKind scopeKind = settings.scope();
+        if (scopeKind == VitestScopeKind.ALL) {
+            return "All Tests";
+        } else if (scopeKind == VitestScopeKind.SUITE) {
+            return settings.suiteName();
         } else if (scopeKind == VitestScopeKind.TEST_FILE) {
             return PathUtil.getFileName(settings.testFilePath());
-        } else if (scopeKind != VitestScopeKind.SUITE && scopeKind != VitestScopeKind.TEST) {
-            return StringUtil.isNotEmpty(settings.testFilePath()) ? PathUtil.getFileName(settings.testFilePath()) : "All Tests";
-        } else {
-            return settings.testName();
+        } else if (scopeKind == VitestScopeKind.TEST) {
+            return settings.testNames().stream().findFirst().orElse(null);
         }
+        return null;
     }
 
     @Nullable
     public String getActionName() {
         VitestScopeKind scopeKind = settings.scope();
-        if (scopeKind != VitestScopeKind.SUITE && scopeKind != VitestScopeKind.TEST) {
-            return super.getActionName();
+        switch (scopeKind) {
+            case TEST:
+                return settings.testNames().stream().findFirst().orElse(null);
+            case SUITE:
+                return settings.suiteName();
+            default:
+                return super.getActionName();
         }
-        return StringUtil.notNullize(settings.testName());
     }
 
     public void setRunSettings(@NotNull VitestSettings vitestSettings) {
@@ -102,8 +109,11 @@ public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile i
         String vitestScope = JDOMExternalizerUtil.readCustomField(element, "test-scope");
         String suiteName = JDOMExternalizerUtil.readCustomField(element, "suite-name");
         String testFilePath = JDOMExternalizerUtil.readCustomField(element, "test-file-path");
-        String testName = JDOMExternalizerUtil.readCustomField(element, "test-name");
-        String testPattern = JDOMExternalizerUtil.readCustomField(element, "test-pattern");
+        List<String> testNames = Optional.ofNullable(element.getChild("test-names"))
+                .map(testNamesElement -> {
+                    return JDOMExternalizerUtil.getChildrenValueAttributes(testNamesElement, "test-name");
+                }).orElseGet(ArrayList::new);
+
         VitestSettings.Builder settingsBuilder = new VitestSettings.Builder();
 
         Optional.ofNullable(interpreterRef)
@@ -138,13 +148,7 @@ public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile i
                 .filter(StringUtils::isNotEmpty)
                 .ifPresent(settingsBuilder::testFilePath);
 
-        Optional.ofNullable(testName)
-                .filter(StringUtils::isNotEmpty)
-                .ifPresent(settingsBuilder::testName);
-
-        Optional.ofNullable(testPattern)
-                .filter(StringUtils::isNotEmpty)
-                .ifPresent(settingsBuilder::testPattern);
+        settingsBuilder.testNames(testNames);
 
         Optional.ofNullable(vitestScope)
                 .filter(StringUtils::isNotEmpty)
@@ -206,18 +210,14 @@ public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile i
                 });
 
         Optional.ofNullable(settings)
-                .map(VitestSettings::testName)
-                .filter(StringUtils::isNotEmpty)
-                .ifPresent(testFileName -> {
-                    JDOMExternalizerUtil.writeCustomField(element, "test-name", testFileName);
+                .map(VitestSettings::testNames)
+                .filter(CollectionUtils::isNotEmpty)
+                .ifPresent(testNames -> {
+                    Element testNamesElement = new Element("test-names");
+                    JDOMExternalizerUtil.addChildrenWithValueAttribute(testNamesElement, "test-name", testNames);
+                    element.addContent(testNamesElement);
                 });
 
-        Optional.ofNullable(settings)
-                .map(VitestSettings::testPattern)
-                .filter(StringUtils::isNotEmpty)
-                .ifPresent(testPattern -> {
-                    JDOMExternalizerUtil.writeCustomField(element, "test-pattern", testPattern);
-                });
 
         Optional.ofNullable(settings)
                 .map(VitestSettings::scope)
@@ -230,7 +230,7 @@ public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile i
 
     @NotNull
     @Override
-    public SettingsEditor<? extends AbstractNodeTargetRunProfile> createConfigurationEditor() {
+    public SettingsEditor<VitestRunConfiguration> createConfigurationEditor() {
         return new VitestRunConfigurationEditor(this.getProject());
     }
 }

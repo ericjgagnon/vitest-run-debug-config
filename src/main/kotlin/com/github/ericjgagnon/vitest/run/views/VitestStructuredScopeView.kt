@@ -2,15 +2,23 @@ package com.github.ericjgagnon.vitest.run.views
 
 import com.github.ericjgagnon.vitest.run.VitestScopeKind
 import com.github.ericjgagnon.vitest.run.VitestSettings
-import com.github.ericjgagnon.vitest.run.utils.FormUtils.directoryField
+import com.github.ericjgagnon.vitest.run.utils.FormUtils.fileSystemCell
 import com.github.ericjgagnon.vitest.run.utils.FormUtils.selectedValueMatches
+import com.google.common.base.CharMatcher
+import com.google.common.base.Splitter
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.ui.layout.ComponentPredicate
+import com.intellij.ui.layout.and
+import com.intellij.ui.layout.enteredTextSatisfies
 import com.intellij.util.containers.reverse
+import org.apache.commons.collections.CollectionUtils
+import org.apache.commons.lang3.StringUtils
+import java.io.File
 import java.util.Optional
 import javax.swing.ButtonGroup
 import javax.swing.ButtonModel
@@ -24,7 +32,7 @@ class VitestStructuredScopeView(private val project: Project): VitestScopeView {
 
     private var testFileField = TextFieldWithBrowseButton()
     private var suiteNameField = JBTextField()
-    private var testNameField = JBTextField()
+    private var testNameField = TextFieldWithBrowseButton()
     private var vitestScopeKindField = ButtonGroup()
 
     private var scopedButtonModels = mutableMapOf<VitestScopeKind, ButtonModel>()
@@ -35,6 +43,13 @@ class VitestStructuredScopeView(private val project: Project): VitestScopeView {
 
 
     init {
+        testNameField.addActionListener {
+            val currentSelections = testNameField.text
+            val testNameSelectionDialog = TestNameSelectionDialog(project, testFileField.text)
+            if (testNameSelectionDialog.showAndGet()) {
+                testNameField.text = testNameSelectionDialog.selections()
+            }
+        }
         for (scope in VitestScopeKind.values()) {
             val testScopeButton = JRadioButton(scope.label)
             vitestScopeKindField.add(testScopeButton)
@@ -53,9 +68,15 @@ class VitestStructuredScopeView(private val project: Project): VitestScopeView {
     }
 
     override fun setFromSettings(settings: VitestSettings) {
-        Optional.ofNullable(settings.testFilePath()).ifPresent(testFileField::setText)
-        Optional.ofNullable(settings.suiteName()).ifPresent(testFileField::setText)
-        Optional.ofNullable(settings.testName()).ifPresent(testNameField::setText)
+        Optional.ofNullable(settings.testFilePath()).ifPresent {
+            testFileField.text = it
+            Optional.ofNullable(settings.testNames())
+                .filter(CollectionUtils::isNotEmpty)
+                .ifPresent { testNames ->
+                    testNameField.text = testNames.joinToString("|", "'", "'")
+                }
+        }
+        Optional.ofNullable(settings.suiteName()).ifPresent(suiteNameField::setText)
 
         vitestScopeKindField.clearSelection()
         Optional.ofNullable(settings.scope()).ifPresentOrElse(
@@ -73,11 +94,11 @@ class VitestStructuredScopeView(private val project: Project): VitestScopeView {
 
         val suiteName = suiteNameField.text
         val testFilePath = testFileField.text
-        val testName = testNameField.text
+        val testNames = Splitter.on("|").omitEmptyStrings().trimResults(CharMatcher.`is`('\'')).splitToList(testNameField.text)
 
         settingsBuilder.suiteName(suiteName)
         settingsBuilder.testFilePath(testFilePath)
-        settingsBuilder.testName(testName)
+        settingsBuilder.testNames(testNames)
 
         settingsBuilder.scope(testScope)
     }
@@ -95,15 +116,16 @@ class VitestStructuredScopeView(private val project: Project): VitestScopeView {
             }
 
             row("Test file:") {
-                directoryField(project, testFileField, "Test file")
+                fileSystemCell(project, testFileField, "Test file", FileChooserDescriptorFactory.createSingleFileDescriptor())
             }.visibleIf(testFileScopesPredicate)
             row("Suite name:") {
                 cell(suiteNameField).horizontalAlign(HorizontalAlign.FILL)
             }.visibleIf(testSuiteScopesPredicate)
-            row("Test name:") {
+            row("Test names:") {
                 cell(testNameField).horizontalAlign(HorizontalAlign.FILL)
-            }.visibleIf(testNameScopesPredicate)
+            }.visibleIf(testNameScopesPredicate.and(testFileField.childComponent.enteredTextSatisfies { filePath ->
+                StringUtils.isNotBlank(filePath) && File(filePath).exists()
+            }))
         }
     }
-
 }

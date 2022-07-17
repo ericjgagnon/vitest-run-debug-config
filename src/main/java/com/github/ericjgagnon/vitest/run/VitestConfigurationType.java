@@ -1,9 +1,9 @@
 package com.github.ericjgagnon.vitest.run;
 
+import icons.Icons;
 import com.intellij.execution.configurations.ConfigurationTypeUtil;
 import com.intellij.execution.configurations.RunConfigurationSingletonPolicy;
 import com.intellij.execution.configurations.SimpleConfigurationType;
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NotNullLazyValue;
@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
 public class VitestConfigurationType extends SimpleConfigurationType implements DumbAware {
     protected VitestConfigurationType() {
         super("JavaScriptTestRunnerVitest", "Vitest", null, NotNullLazyValue.createValue(() -> {
-            return AllIcons.FileTypes.JavaScript;
+            return Icons.VITEST_ICON;
         }));
     }
 

@@ -23,6 +23,7 @@ export default class IntellijTestReporter implements Reporter {
         task.type,
         task.id,
         task.name,
+        task.file,
         parentNode ? parentNode : null
       );
       if (parentNode) {

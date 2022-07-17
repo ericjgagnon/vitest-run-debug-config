@@ -1,6 +1,6 @@
 import { endMessages, resultStateMessages, startMessages } from './constants';
 import { teamCityMessage } from './utils';
-import type { TaskResult } from 'vitest';
+import type { File, TaskResult } from 'vitest';
 
 /**
  * @class
@@ -11,6 +11,7 @@ export default class Node {
   private readonly _id: string;
   private readonly nodeId: string;
   private readonly name: string;
+  private readonly file: File | undefined;
   private readonly _parentNode: Node | null;
   private readonly parentNodeId: string | null;
   private readonly _type: string;
@@ -23,6 +24,7 @@ export default class Node {
     type: string,
     id: string,
     name: string,
+    file: File | undefined,
     parentNode: Node | null = null
   ) {
     /**
@@ -40,6 +42,11 @@ export default class Node {
      * @public
      */
     this.name = name;
+    /**
+     * @type {File|undefined}
+     * @private
+     */
+    this.file = file;
     /**
      * @type {Node}
      * @public
@@ -114,6 +121,9 @@ export default class Node {
           name: this.name,
           nodeId: this.nodeId,
           parentNodeId: this.parentNodeId,
+          ...(this.file?.filepath
+            ? { locationHint: `file::/${this.file.filepath}` }
+            : {}),
           ...(error?.message ? { message: error.message } : {}),
         });
       }

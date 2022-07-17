@@ -1,8 +1,8 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>vitest</id>
-    <name>Vitest</name>
-    <vendor>ericjgagnon</vendor>
+    <name>Vitest Run/Debug Configuration Support</name>
+    <vendor email="gagnonericj@gmail.com">Eric Gagnon</vendor>
 
     <depends>JavaScript</depends>
     <depends>com.intellij.modules.platform</depends>

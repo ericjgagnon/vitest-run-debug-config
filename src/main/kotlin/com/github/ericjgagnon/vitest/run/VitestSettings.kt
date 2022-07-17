@@ -3,6 +3,7 @@ package com.github.ericjgagnon.vitest.run
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.openapi.util.io.FileUtil
+import org.apache.commons.collections.CollectionUtils
 
 class VitestSettings private constructor(
     private val interpreter: NodeJsInterpreterRef?,
@@ -10,10 +11,9 @@ class VitestSettings private constructor(
     private val vitestPackage: NodePackage?,
     private val vitestConfigFilePath: String?,
     private val workingDirectory: String?,
-    private val testName: String?,
+    private val testNames: List<String>?,
     private val testFilePath: String?,
     private val suiteName: String?,
-    private val testPattern: String?,
     private val scope: VitestScopeKind,
     ) {
 
@@ -26,7 +26,7 @@ class VitestSettings private constructor(
     }
 
     fun vittestPackage(): NodePackage? {
-        return vitestPackage
+        return vitestPackage!!
     }
 
     fun vitestConfigFilePath(): String? {
@@ -37,8 +37,8 @@ class VitestSettings private constructor(
         return workingDirectory
     }
 
-    fun testName(): String? {
-        return testName
+    fun testNames(): List<String>? {
+        return testNames
     }
 
     fun testFilePath(): String? {
@@ -49,16 +49,12 @@ class VitestSettings private constructor(
         return suiteName
     }
 
-    fun testPattern(): String? {
-        return testPattern
-    }
-
     fun scope(): VitestScopeKind {
         return scope
     }
 
     fun toBuilder(): Builder {
-        return Builder(interpreter, nodeOptions, vitestPackage, vitestConfigFilePath, workingDirectory, testName, testFilePath, suiteName, testPattern, scope)
+        return Builder(interpreter, nodeOptions, vitestPackage, vitestConfigFilePath, workingDirectory, testNames, testFilePath, suiteName, scope)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -72,10 +68,9 @@ class VitestSettings private constructor(
         if (vitestPackage != other.vitestPackage) return false
         if (vitestConfigFilePath != other.vitestConfigFilePath) return false
         if (workingDirectory != other.workingDirectory) return false
-        if (testName != other.testName) return false
+        if (!CollectionUtils.isEqualCollection(testNames, other.testNames)) return false
         if (testFilePath != other.testFilePath) return false
         if (suiteName != other.suiteName) return false
-        if (testPattern != other.testPattern) return false
         if (scope != other.scope) return false
 
         return true
@@ -87,10 +82,9 @@ class VitestSettings private constructor(
         result = 31 * result + (vitestPackage?.hashCode() ?: 0)
         result = 31 * result + (vitestConfigFilePath?.hashCode() ?: 0)
         result = 31 * result + (workingDirectory?.hashCode() ?: 0)
-        result = 31 * result + (testName?.hashCode() ?: 0)
+        result = 31 * result + (testNames?.hashCode() ?: 0)
         result = 31 * result + (testFilePath?.hashCode() ?: 0)
         result = 31 * result + (suiteName?.hashCode() ?: 0)
-        result = 31 * result + (testPattern?.hashCode() ?: 0)
         result = 31 * result + scope.hashCode()
         return result
     }
@@ -102,10 +96,9 @@ class VitestSettings private constructor(
         var vitestPackage: NodePackage? = null,
         var vitestConfigFilePath: String? = null,
         var workingDirectory: String? = null,
-        var testName: String? = null,
+        var testNames: List<String>? = null,
         var testFilePath: String? = null,
         var suiteName: String?  = null,
-        var testPattern: String? = null,
         var scope: VitestScopeKind = VitestScopeKind.ALL,
     ) {
 
@@ -115,10 +108,9 @@ class VitestSettings private constructor(
         fun vitestConfigFilePath(vitestConfigFilePath: String) = apply { this.vitestConfigFilePath = vitestConfigFilePath }
         fun workingDirectory(workingDirectory: String) = apply { this.workingDirectory = workingDirectory }
         fun scope(scope: VitestScopeKind) = apply { this.scope = scope }
-        fun testName(testName: String) = apply { this.testName = testName }
+        fun testNames(testNames: List<String>) = apply { this.testNames = testNames }
         fun testFilePath(testFilePath: String) = apply { this.testFilePath = FileUtil.toSystemDependentName(testFilePath) }
         fun suiteName(suiteName: String) = apply { this.suiteName = suiteName }
-        fun testPattern(testPattern: String) = apply { this.testPattern = testPattern }
         fun build(): VitestSettings {
             return VitestSettings(
                 interpreter,
@@ -126,10 +118,9 @@ class VitestSettings private constructor(
                 vitestPackage,
                 vitestConfigFilePath,
                 workingDirectory,
-                testName,
+                testNames,
                 testFilePath,
                 suiteName,
-                testPattern,
                 scope
             )
         }
