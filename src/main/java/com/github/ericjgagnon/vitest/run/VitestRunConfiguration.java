@@ -33,7 +33,7 @@ import java.util.Optional;
 
 public final class VitestRunConfiguration extends AbstractNodeTargetRunProfile implements NodeDebugRunConfiguration, JSRunProfileWithCompileBeforeLaunchOption, SMRunnerConsolePropertiesProvider {
 
-    private VitestSettings settings;
+    private VitestSettings settings = new VitestSettings.Builder().build();
 
     public VitestRunConfiguration(@NotNull Project project, @NotNull ConfigurationFactory factory, @Nullable String name) {
         super(project, factory, name);

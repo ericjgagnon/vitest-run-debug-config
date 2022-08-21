@@ -4,7 +4,6 @@ import com.github.ericjgagnon.vitest.run.VitestScopeKind
 import com.github.ericjgagnon.vitest.run.VitestSettings
 import com.github.ericjgagnon.vitest.run.utils.FormUtils.fileSystemCell
 import com.github.ericjgagnon.vitest.run.utils.FormUtils.selectedValueMatches
-import com.google.common.base.CharMatcher
 import com.google.common.base.Splitter
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
@@ -32,7 +31,7 @@ class VitestStructuredScopeView(private val project: Project): VitestScopeView {
 
     private var testFileField = TextFieldWithBrowseButton()
     private var suiteNameField = JBTextField()
-    private var testNameField = TextFieldWithBrowseButton()
+    private var testNameField = JBTextField()
     private var vitestScopeKindField = ButtonGroup()
 
     private var scopedButtonModels = mutableMapOf<VitestScopeKind, ButtonModel>()
@@ -43,13 +42,13 @@ class VitestStructuredScopeView(private val project: Project): VitestScopeView {
 
 
     init {
-        testNameField.addActionListener {
-            val currentSelections = testNameField.text
-            val testNameSelectionDialog = TestNameSelectionDialog(project, testFileField.text)
-            if (testNameSelectionDialog.showAndGet()) {
-                testNameField.text = testNameSelectionDialog.selections()
-            }
-        }
+//        testNameField.addActionListener {
+//            val currentSelections = testNameField.text
+//            val testNameSelectionDialog = TestNameSelectionDialog(project, testFileField.text)
+//            if (testNameSelectionDialog.showAndGet()) {
+//                testNameField.text = testNameSelectionDialog.selections()
+//            }
+//        }
         for (scope in VitestScopeKind.values()) {
             val testScopeButton = JRadioButton(scope.label)
             vitestScopeKindField.add(testScopeButton)
@@ -73,7 +72,7 @@ class VitestStructuredScopeView(private val project: Project): VitestScopeView {
             Optional.ofNullable(settings.testNames())
                 .filter(CollectionUtils::isNotEmpty)
                 .ifPresent { testNames ->
-                    testNameField.text = testNames.joinToString("|", "'", "'")
+                    testNameField.text = testNames.joinToString("|")
                 }
         }
         Optional.ofNullable(settings.suiteName()).ifPresent(suiteNameField::setText)
@@ -94,7 +93,7 @@ class VitestStructuredScopeView(private val project: Project): VitestScopeView {
 
         val suiteName = suiteNameField.text
         val testFilePath = testFileField.text
-        val testNames = Splitter.on("|").omitEmptyStrings().trimResults(CharMatcher.`is`('\'')).splitToList(testNameField.text)
+        val testNames = Splitter.on("|").omitEmptyStrings().splitToList(testNameField.text)
 
         settingsBuilder.suiteName(suiteName)
         settingsBuilder.testFilePath(testFilePath)

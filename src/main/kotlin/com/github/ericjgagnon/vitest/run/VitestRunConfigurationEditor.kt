@@ -1,9 +1,11 @@
 package com.github.ericjgagnon.vitest.run
 
+import com.github.ericjgagnon.vitest.run.VitestConstants.CONFIG_FILE_NAMES
 import com.github.ericjgagnon.vitest.run.utils.FormUtils.fileSystemCell
 import com.github.ericjgagnon.vitest.run.views.VitestStructuredScopeView
 import com.intellij.execution.configuration.EnvironmentVariablesTextFieldWithBrowseButton
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterField
+import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.util.NodePackageField
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.SettingsEditor
@@ -31,7 +33,7 @@ class VitestRunConfigurationEditor(
 
     override fun resetEditorFrom(runConfiguration: VitestRunConfiguration) {
         val settings = runConfiguration.settings
-        nodeInterpreterField.interpreterRef = settings.interpreter()
+        nodeInterpreterField.interpreterRef = settings.interpreter() ?: NodeJsInterpreterRef.createProjectRef()
         Optional.ofNullable(settings.nodeOptions()).ifPresent(nodeOptionsField::setText)
         Optional.ofNullable(settings.vittestPackage()).ifPresent(vitestJsPackageField::setSelected)
         Optional.ofNullable(settings.vitestConfigFilePath()).ifPresent(viteConfigFilePathField::setText)
@@ -69,7 +71,10 @@ class VitestRunConfigurationEditor(
             row("Working directory:") { fileSystemCell(project, workingDirectoryField, "Working Directory") }
             row("Configuration file:") {
                 fileSystemCell(project, viteConfigFilePathField, "Configuration File",
-                    FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor().withFileFilter { file -> file.name == "vite.config.js" })
+                    FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor().withFileFilter { file ->
+                        CONFIG_FILE_NAMES.contains(file.name)
+                    }
+                )
             }
             with(vitestScopeView) {
                 render()

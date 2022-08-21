@@ -1,15 +1,15 @@
 package com.github.ericjgagnon.vitest.run
 
+import com.github.ericjgagnon.vitest.run.VitestConstants.REPORTER_JS_FILE_NAME
+import com.github.ericjgagnon.vitest.run.VitestConstants.TEST_FRAMEWORK_NAME
 import com.github.ericjgagnon.vitest.run.utils.withNotNullNorEmpty
 import com.intellij.execution.DefaultExecutionResult
 import com.intellij.execution.ExecutionResult
 import com.intellij.execution.filters.Filter
-import com.intellij.execution.impl.ConsoleViewImpl
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
-import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView
 import com.intellij.javascript.debugger.CommandLineDebugConfigurator
 import com.intellij.javascript.nodejs.NodeCommandLineUtil
 import com.intellij.javascript.nodejs.NodeConsoleAdditionalFilter
@@ -20,6 +20,7 @@ import com.intellij.javascript.nodejs.debug.NodeCommandLineOwner
 import com.intellij.javascript.nodejs.execution.NodeBaseRunProfileState
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
+import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.lang.javascript.ConsoleCommandLineFolder
 import com.intellij.openapi.project.Project
@@ -27,14 +28,8 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.PathUtil
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
 import java.io.File
-import java.io.IOException
-import java.io.OutputStream
 import java.nio.file.Files
-
-private const val reporterPackage = "cypress-vitest-reporter"
 
 class VitestRunProfileState(
     private val vitestRunConfiguration: VitestRunConfiguration,
@@ -42,7 +37,7 @@ class VitestRunProfileState(
 ) : NodeBaseRunProfileState, NodeCommandLineOwner {
 
     private val reporter by lazy {
-        Files.createTempFile("intellij-vitest-reporter", ".js").toFile().apply {
+        Files.createTempFile(REPORTER_JS_FILE_NAME, ".js").toFile().apply {
             val os = if (SystemInfo.isWindows) "windows" else "nix"
             writeBytes(VitestRunProfileState::class.java.getResourceAsStream("/vitest-intellij-plugin/dist/reporter.$os.js")!!.readBytes())
             deleteOnExit()
@@ -59,7 +54,7 @@ class VitestRunProfileState(
         val consoleProperties = vitestRunConfiguration.createTestConsoleProperties(environment.executor,
             NodeCommandLineUtil.shouldUseTerminalConsole(processHandler),
             NodeTargetRun.getTargetRun(processHandler))
-        val consoleView = SMTestRunnerConnectionUtil.createConsole("VitestJavaScriptTestRunner", consoleProperties)
+        val consoleView = SMTestRunnerConnectionUtil.createConsole(TEST_FRAMEWORK_NAME, consoleProperties)
         val workingDirectory = settings.workingDirectory()
         consoleProperties.addStackTraceFilter(NodeStackTraceFilter(project, workingDirectory, consoleProperties.targetRun))
         val stackTraceFilters: Iterator<Filter> = consoleProperties.stackTrackFilters.iterator()
@@ -70,47 +65,6 @@ class VitestRunProfileState(
         }
 
         consoleView.addMessageFilter(NodeConsoleAdditionalFilter(project, workingDirectory))
-        val testConsole = consoleView as SMTRunnerConsoleView
-        val consoleImpl = testConsole.console as ConsoleViewImpl
-        val editor = consoleImpl.editor
-        val keyCodeMapping: Map<Int, Int> =
-            mapOf(40 to 1792834,
-                37 to 1792836,
-                39 to 1792835,
-                38 to 1792833,
-                8 to (if (SystemInfo.isWindows) 8 else 127),
-                10 to 13,
-                27 to 27
-            )
-
-        editor?.contentComponent?.addKeyListener(object : KeyAdapter() {
-            override fun keyTyped(event: KeyEvent) {
-                if (event.keyChar.code != 0) {
-                    sendCode(event.keyChar.code)
-                }
-            }
-
-            override fun keyReleased(event: KeyEvent) {
-                val newKeyCode = keyCodeMapping[event.keyCode]
-                if (newKeyCode != null) {
-                    sendCode(newKeyCode)
-                }
-            }
-
-            private fun sendCode(keyCode: Int) {
-                if (!processHandler.isProcessTerminated) {
-                    val input: OutputStream? = processHandler.processInput
-                    if (input != null) {
-                        try {
-                            input.write(keyCode)
-                            input.flush()
-                        } catch (exception: IOException) {
-                            throw RuntimeException("Failed to handle input with keyCode $keyCode", exception)
-                        }
-                    }
-                }
-            }
-        })
 
         ProcessTerminatedListener.attach(processHandler)
         consoleView.attachToProcess(processHandler)
@@ -121,7 +75,7 @@ class VitestRunProfileState(
     }
 
     override fun startProcess(configurator: CommandLineDebugConfigurator?): ProcessHandler {
-        val nodeJsInterpreterRef = settings.interpreter()
+        val nodeJsInterpreterRef = settings.interpreter() ?: NodeJsInterpreterRef.createProjectRef()
         val nodeInterpreter: NodeJsInterpreter = nodeJsInterpreterRef.resolveNotNull(project)
         val nodeTargetRun = NodeTargetRun(nodeInterpreter, project, configurator, NodeTargetRun.createOptionsForTestConsole(
             listOf(), true, vitestRunConfiguration
@@ -131,24 +85,24 @@ class VitestRunProfileState(
 
         val workingDir = settings.workingDirectory()
         workingDir?.let{
-            commandLine.setWorkingDirectory(workingDir)
+            commandLine.setWorkingDirectory(it)
         }
 
         val vitestPackage = settings.vittestPackage()
         vitestPackage?.let {
-            val bin = File(vitestPackage.systemDependentPath, "dist/cli")
+            val bin = File(it.systemDependentPath, "dist/cli.mjs")
             commandLine.addParameter(nodeTargetRun.path(bin.absolutePath))
             commandLine.addParameter("run")
-            folder.addPlaceholderText(vitestPackage.name)
+            folder.addPlaceholderText(it.name)
             folder.addPlaceholderText("run")
         }
 
         NodeCommandLineUtil.prependNodeDirToPATH(nodeTargetRun)
-        commandLine.addParameter("--config")
         val vitestConfigFilePath = settings.vitestConfigFilePath()
         vitestConfigFilePath?.let {
-            commandLine.addParameter(nodeTargetRun.path(FileUtil.toSystemDependentName(vitestConfigFilePath)))
-            folder.addPlaceholderTexts(listOf("--config=" + PathUtil.getFileName(vitestConfigFilePath)))
+            commandLine.addParameter("--config")
+            commandLine.addParameter(nodeTargetRun.path(FileUtil.toSystemDependentName(it)))
+            folder.addPlaceholderTexts(listOf("--config=" + PathUtil.getFileName(it)))
         }
 
         val reporterFile = vitestRunConfiguration.getVitestReporterFile()
@@ -159,18 +113,17 @@ class VitestRunProfileState(
             folder.addPlaceholderText(it)
         }
 
-
         val testFilePath = settings.testFilePath()
         testFilePath?.let {
-            commandLine.addParameter(testFilePath)
-            folder.addPlaceholderText(testFilePath)
+            commandLine.addParameter(it)
+            folder.addPlaceholderText(it)
         }
 
         val testNames = settings.testNames()
         testNames.withNotNullNorEmpty {
-            val testNamesPiped = this.joinToString("|", "'", "'");
-            commandLine.addParameters("-t", testNamesPiped)
-            folder.addPlaceholderTexts("-t", testNamesPiped)
+            val testNamesPiped = this.joinToString("|");
+            commandLine.addParameter("--testNamePattern=$testNamesPiped")
+            folder.addPlaceholderText("--testNamePattern=$testNamesPiped")
         }
 
         commandLine.addParameter(" --passWithNoTests")
@@ -184,7 +137,7 @@ class VitestRunProfileState(
         file?.let {
             val info = NodeModuleSearchUtil.resolveModuleFromNodeModulesDir(
                 it,
-                reporterPackage,
+                REPORTER_JS_FILE_NAME,
                 NodeModuleDirectorySearchProcessor.PROCESSOR
             )
             if (info != null && info.moduleSourceRoot.isDirectory) {

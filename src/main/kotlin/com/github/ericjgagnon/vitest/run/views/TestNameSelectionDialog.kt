@@ -24,7 +24,7 @@ class TestNameSelectionDialog(val project: Project, private val filePath: String
     private val testNamesField = TextFieldWithBrowseButton()
     private val testTree: CheckboxTree
     private val rootNode: CheckedTreeNode = CheckedTreeNode("")
-    private val selectedTests = StringJoiner("|", "'", "'")
+    private val selectedTests = StringJoiner("|")
 
     init {
         testTree = CheckboxTree(MyCheckboxTreeCellRenderer(), rootNode)

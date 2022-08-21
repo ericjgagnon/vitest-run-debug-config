@@ -28,7 +28,7 @@ class VitestRunProfileStateTest: BasePlatformTestCase() {
                 "##teamcity[testFinished id='1766321171_0' name='2 === 2' nodeId='1766321171_0' duration='1']\n" +
                 "##teamcity[testingFinished]\n"
 
-        val config = VitestConfigurationType.getInstance().createTemplateConfiguration(project)
+        val config = VitestConfigurationType.instance.createTemplateConfiguration(project)
         val settings = VitestSettings.Builder(
             NodeJsInterpreterRef.createProjectRef(),
             null,

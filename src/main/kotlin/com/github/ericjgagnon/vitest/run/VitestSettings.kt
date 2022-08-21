@@ -17,8 +17,8 @@ class VitestSettings private constructor(
     private val scope: VitestScopeKind,
     ) {
 
-    fun interpreter(): NodeJsInterpreterRef {
-        return interpreter!!
+    fun interpreter(): NodeJsInterpreterRef? {
+        return interpreter
     }
 
     fun nodeOptions(): String? {
@@ -26,7 +26,7 @@ class VitestSettings private constructor(
     }
 
     fun vittestPackage(): NodePackage? {
-        return vitestPackage!!
+        return vitestPackage
     }
 
     fun vitestConfigFilePath(): String? {
